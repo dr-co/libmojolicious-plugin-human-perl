@@ -6,7 +6,7 @@ use utf8;
 use open qw(:std :utf8);
 use lib qw(lib ../lib ../../lib);
 
-use Test::More tests => 21;
+use Test::More tests => 23;
 use Encode qw(decode encode);
 
 
@@ -52,6 +52,10 @@ $t->app->routes->post("/test/human")->to( cb => sub {
     ok $self->human_date( $dstr ) eq $dt->strftime('%F'),
         'human_date';
 
+    ok !defined $self->human_money(),
+        'human_money undefined';
+    ok $self->human_money('') eq '',
+        'human_money empty';
 
     ok $self->human_money('12345678.00') eq '12,345,678.00',
         'human_money';

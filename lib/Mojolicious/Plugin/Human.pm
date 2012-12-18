@@ -10,7 +10,7 @@ use Carp;
 use DateTime;
 use DateTime::Format::DateParse;
 
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 =encoding utf-8
 
@@ -171,6 +171,7 @@ sub register {
 
     $app->helper(human_money => sub {
         my ($self, $str) = @_;
+        return $str if !defined($str) || !length($str);
         my $delim = $conf->{money_delim};
         my $digit = $conf->{money_digit};
         $str = sprintf '%.2f', $str;
@@ -197,6 +198,9 @@ sub register {
 
     $app->helper(human_suffix => sub {
         my ($self, $str, $count, $one, $two, $many) = @_;
+
+        return      unless defined $str;
+        return $str unless defined $count;
 
         # Last digit
         my $tail = abs( $count ) % 10;
