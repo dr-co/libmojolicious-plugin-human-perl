@@ -12,5 +12,3 @@ Architecture: all
 Depends: ${misc:Depends}, ${perl:Depends}
 Description: Helpers to print values as human readable form.
  You can use this module in Mojo template engine to make you users happy.
- .
- This description was automagically extracted from the module by dh-make-perl.
