@@ -1,14 +1,21 @@
 Source: libmojolicious-plugin-human-perl
 Section: perl
 Priority: optional
-Maintainer: Roman V. Nikolaev <rshadow@rambler.ru>
-Build-Depends: debhelper (>= 8)
+Maintainer: Dmitry E. Oboukhov <unera@debian.org>
+Uploaders: Roman V. Nikolaev <rshadow@rambler.ru>
+Build-Depends: debhelper (>= 8),
+ libmojolicious-perl,
+ libdatetime-perl,
+ libdatetime-format-dateparse-perl
 Build-Depends-Indep: perl
 Standards-Version: 3.9.3
 Homepage: http://search.cpan.org/dist/Mojolicious-Plugin-Human/
 
 Package: libmojolicious-plugin-human-perl
+Depends: ${misc:Depends}, ${perl:Depends},
+ libmojolicious-perl,
+ libdatetime-perl,
+ libdatetime-format-dateparse-perl
 Architecture: all
-Depends: ${misc:Depends}, ${perl:Depends}
 Description: Helpers to print values as human readable form.
  You can use this module in Mojo template engine to make you users happy.
