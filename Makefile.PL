@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
@@ -14,5 +16,14 @@ WriteMakefile(
         'Mojo::Base'                    => 0,
         'DateTime'                      => 0,
         'DateTime::Format::DateParse'   => 0,
-    }
+        'DateTime::Format::DateParse'   => 0,
+    },
+    META_MERGE   => {
+        resources => {
+          homepage    => 'https://github.com/dr-co/libmojolicious-plugin-human-perl',
+          repository  => 'https://github.com/dr-co/libmojolicious-plugin-human-perl',
+          bugtracker  => 'https://github.com/dr-co/libmojolicious-plugin-human-perl/issues'
+        },
+        no_index => {directory => ['t']}
+    },
 );
