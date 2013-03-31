@@ -1,3 +1,11 @@
+libmojolicious-plugin-human-perl (0.6-1) nowtaxi; urgency=low
+
+  * Fix datetime parse
+  * Add distance function
+  * Rename flat_phone
+
+ -- Roman V. Nikolaev <rshadow@rambler.ru>  Sun, 31 Mar 2013 16:18:26 +0400
+
 libmojolicious-plugin-human-perl (0.5-1) nowtaxi; urgency=low
 
   * Fix perl version 
