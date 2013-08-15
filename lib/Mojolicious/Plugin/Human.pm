@@ -11,7 +11,7 @@ use Carp;
 use DateTime;
 use DateTime::Format::DateParse;
 
-our $VERSION = '0.6';
+our $VERSION = '0.7';
 
 =encoding utf-8
 
@@ -131,7 +131,7 @@ my $REGEXP_DIGIT = qr{^(-?\d+)(\d{3})};
 
 sub clean_phone($$$);
 sub human_phone($$$);
-sub date_parse($);
+sub date_parse($;$);
 
 
 sub register {
@@ -145,6 +145,7 @@ sub register {
     $conf->{datetime}   //= '%F %H:%M';
     $conf->{time}       //= '%H:%M:%S';
     $conf->{date}       //= '%F';
+    $conf->{tz}         //= 'local';
 
     $conf->{phone_country}  //= 7;
     $conf->{phone_region}   //= 495;
@@ -152,37 +153,37 @@ sub register {
     # Datetime
 
     $app->helper(str2time => sub {
-        my ($self, $str) = @_;
-        my $datetime = date_parse( $str );
+        my ($self, $str, $tz) = @_;
+        my $datetime = date_parse( $str, $tz // $conf->{tz} );
         return $str unless $datetime;
         return $datetime->epoch;
     });
 
     $app->helper(strftime => sub {
-        my ($self, $format, $str) = @_;
+        my ($self, $format, $str, $tz) = @_;
         return unless defined $str;
-        my $datetime = date_parse( $str );
+        my $datetime = date_parse( $str, $tz // $conf->{tz} );
         return $str unless $datetime;
         return $datetime->strftime( $format );
     });
 
     $app->helper(human_datetime => sub {
-        my ($self, $str) = @_;
-        my $datetime = date_parse( $str );
+        my ($self, $str, $tz) = @_;
+        my $datetime = date_parse( $str, $tz // $conf->{tz} );
         return $str unless $datetime;
         return $datetime->strftime($conf->{datetime});
     });
 
     $app->helper(human_time => sub {
-        my ($self, $str) = @_;
-        my $datetime = date_parse( $str );
+        my ($self, $str, $tz) = @_;
+        my $datetime = date_parse( $str, $tz // $conf->{tz} );
         return $str unless $datetime;
         return $datetime->strftime($conf->{time});
     });
 
     $app->helper(human_date => sub {
-        my ($self, $str) = @_;
-        my $datetime = date_parse( $str );
+        my ($self, $str, $tz) = @_;
+        my $datetime = date_parse( $str, $tz // $conf->{tz} );
         return $str unless $datetime;
         return $datetime->strftime($conf->{date});
     });
@@ -309,13 +310,19 @@ Get a string and return DateTime or undef.
 
 =cut
 
-sub date_parse($) {
-    my ($str) = @_;
+sub date_parse($;$) {
+    my ($str, $tz) = @_;
 
     return unless $str;
 
+    $tz //= 'local';
+
     my $dt = eval {
-        DateTime::Format::DateParse->parse_datetime( $str );
+        if( $str =~ m{^\d+$} ) {
+            DateTime->from_epoch( epoch => $str, time_zone => $tz );
+        } else {
+            DateTime::Format::DateParse->parse_datetime( $str, $tz );
+        }
     };
     return if !$dt or $@;
 

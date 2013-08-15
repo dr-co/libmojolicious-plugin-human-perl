@@ -6,7 +6,7 @@ use utf8;
 use open qw(:std :utf8);
 use lib qw(lib ../lib ../../lib);
 
-use Test::More tests => 30;
+use Test::More tests => 33;
 use Encode qw(decode encode);
 
 
@@ -33,17 +33,27 @@ ok $t, 'Test Mojo created';
 $t->app->routes->get("/test/human")->to( cb => sub {
     my ($self) = @_;
 
-    my $dt   = DateTime->from_epoch( epoch => time, time_zone  => 'local');
+    my $time = time;
+    my $dt   = DateTime->from_epoch( epoch => $time, time_zone  => 'local');
     my $dstr = $dt->strftime('%F %T %z');
 
     is $self->str2time( $dstr ), $dt->epoch, 'str2time';
     is $self->strftime('%T', $dstr), $dt->strftime('%T'),   'strftime';
+
     is $self->human_datetime( $dstr ), $dt->strftime('%F %H:%M'),
-        'human_datetime';
+        'human_datetime from ISO';
+    is $self->human_datetime( $time ), $dt->strftime('%F %H:%M'),
+        'human_datetime from timestamp';
+
     is $self->human_time( $dstr ), $dt->strftime('%H:%M:%S'),
-        'human_time';
+        'human_time from ISO';
+    is $self->human_time( $time ), $dt->strftime('%H:%M:%S'),
+        'human_time from timestamp';
+
     is $self->human_date( $dstr ), $dt->strftime('%F'),
-        'human_date';
+        'human_date from ISO';
+    is $self->human_date( $time ), $dt->strftime('%F'),
+        'human_date from timestamp';
 
     is $self->human_money,                  undef,      'human_money undefined';
     is $self->human_money(''),              '',         'human_money empty';

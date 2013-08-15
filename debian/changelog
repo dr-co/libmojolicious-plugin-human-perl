@@ -1,3 +1,10 @@
+libmojolicious-plugin-human-perl (0.7-1) nowtaxi; urgency=low
+
+  * Add time zone in datetime functions
+  * Add timestamp as parameter for datetime functions
+
+ -- Roman V. Nikolaev <rshadow@rambler.ru>  Thu, 15 Aug 2013 16:26:21 +0400
+
 libmojolicious-plugin-human-perl (0.6-1) nowtaxi; urgency=low
 
   * Fix datetime parse
