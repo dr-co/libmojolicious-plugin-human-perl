@@ -11,7 +11,7 @@ use Carp;
 use DateTime;
 use DateTime::Format::DateParse;
 
-our $VERSION = '0.7';
+our $VERSION = '0.8';
 
 =encoding utf-8
 
@@ -33,7 +33,6 @@ Mojolicious::Plugin::Human - Helpers to print values as human readable form.
         date        => '%d.%m.%Y',
 
         phone_country   => 1,
-        phone_region    => 123,
     });
 
 =head1 DESCRIPTION
@@ -67,10 +66,6 @@ Set format for human readable date. Default: %F
 =item phone_country
 
 Set country code for phones functions. Default: 7
-
-=item phone_region
-
-Set region code for phones functions. Default: 495
 
 =back
 
@@ -129,8 +124,8 @@ Return distance, without fractional part if possible.
 # Compiled regexp for placement level in the money functions
 my $REGEXP_DIGIT = qr{^(-?\d+)(\d{3})};
 
-sub clean_phone($$$);
-sub human_phone($$$);
+sub clean_phone($$);
+sub human_phone($$);
 sub date_parse($;$);
 
 
@@ -148,7 +143,6 @@ sub register {
     $conf->{tz}         //= 'local';
 
     $conf->{phone_country}  //= 7;
-    $conf->{phone_region}   //= 495;
 
     # Datetime
 
@@ -208,15 +202,13 @@ sub register {
         return '' unless $str;
         my @phones = split /[\s,;:]+/, $str;
         return join ', ' => grep { $_ } map {
-            human_phone $_, $conf->{phone_country}, $conf->{phone_region}
+            human_phone $_, $conf->{phone_country}
         } @phones;
     });
 
     $app->helper(flat_phone => sub {
         my ($self, $phone) = @_;
-        return clean_phone(
-            $phone, $conf->{phone_country}, $conf->{phone_region}
-        ) || '';
+        return clean_phone( $phone, $conf->{phone_country} ) || '';
     });
 
     # Text
@@ -261,31 +253,21 @@ sub register {
 
 =head1 INTERNAL FUNCIONS
 
-=head2 clean_phone $phone, $country, $region
+=head2 clean_phone $phone, $country
 
-Clear phones. Fix first local digit 8 problem.
+Clear phones. Fix first local digit problem.
 
 Return <undef> if phome not correct
 
 =cut
 
-sub clean_phone($$$) {
-    my ($phone, $country, $region) = @_;
+sub clean_phone($$) {
+    my ($phone, $country) = @_;
     return undef unless $phone;
     for ($phone) {
-        s/\D+//g;
-
-        $_ = $region . $_ if 7 == length;
-
+        s/[^0-9wp\+]+//ig;
         return undef unless 10 <= length $phone;
-
-        if (11 == length $_) { # have a country code
-            s/^8/$country/;
-        } elsif (10 == length $_) { # havn`t country code
-            s/^/$country/;
-        }
-
-        s/^/+/;
+        $phone = '+' . $country . $phone unless $phone =~ m{^\+};
     }
     return $phone;
 }
@@ -296,11 +278,11 @@ Make phone string in human readable form.
 
 =cut
 
-sub human_phone($$$) {
-    my ($phone, $country, $region) = @_;
-    $phone = clean_phone $phone, $country, $region;
+sub human_phone($$) {
+    my ($phone, $country) = @_;
+    $phone = clean_phone $phone, $country;
     return $phone unless $phone;
-    $phone =~ s/(...)(...)(....)$/-$1-$2-$3/;
+    s{^(\+.)(...)(...)(.*)$}{$1-$2-$3-$4}, s{[wp]}{.}ig for $phone;
     return $phone;
 }
 

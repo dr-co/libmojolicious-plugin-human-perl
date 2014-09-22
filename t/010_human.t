@@ -6,7 +6,7 @@ use utf8;
 use open qw(:std :utf8);
 use lib qw(lib ../lib ../../lib);
 
-use Test::More tests => 33;
+use Test::More tests => 37;
 use Encode qw(decode encode);
 
 
@@ -65,7 +65,15 @@ $t->app->routes->get("/test/human")->to( cb => sub {
         '+7-123-456-7890, +7-098-765-4321',
         'human_phones many';
     is $self->flat_phone('1234567890'), '+71234567890', 'flat_phone';
+    is $self->human_phones('+79856395409'), '+7-985-639-5409',
+        'human_phones - example 1';
 
+    is $self->human_phones('1234567890w12345'), '+7-123-456-7890.12345',
+        'human_phones with additional';
+    is $self->human_phones('+71234567890w12345'), '+7-123-456-7890.12345',
+        'human_phones with additional and country';
+    is $self->human_phones('+74953696027w00171'), '+7-495-369-6027.00171',
+        'human_phones with additional and country - example 1';
 
     ok $self->human_suffix('', 0, '1','2','100500') eq '100500',
         'human_suffix 0';
