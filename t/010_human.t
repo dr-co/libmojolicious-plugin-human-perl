@@ -22,7 +22,7 @@ BEGIN {
 
     sub startup {
         my ($self) = @_;
-        $self->plugin('Human');
+        $self->plugin('Human', phone_add => ',');
     }
     1;
 }
@@ -68,11 +68,11 @@ $t->app->routes->get("/test/human")->to( cb => sub {
     is $self->human_phones('+79856395409'), '+7-985-639-5409',
         'human_phones - example 1';
 
-    is $self->human_phones('1234567890w12345'), '+7-123-456-7890.12345',
+    is $self->human_phones('1234567890w12345'), '+7-123-456-7890,12345',
         'human_phones with additional';
-    is $self->human_phones('+71234567890w12345'), '+7-123-456-7890.12345',
+    is $self->human_phones('+71234567890w12345'), '+7-123-456-7890,12345',
         'human_phones with additional and country';
-    is $self->human_phones('+74953696027w00171'), '+7-495-369-6027.00171',
+    is $self->human_phones('+74953696027w00171'), '+7-495-369-6027,00171',
         'human_phones with additional and country - example 1';
 
     ok $self->human_suffix('', 0, '1','2','100500') eq '100500',

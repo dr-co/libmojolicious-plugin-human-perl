@@ -1,3 +1,9 @@
+libmojolicious-plugin-human-perl (0.9-1) nowtaxi; urgency=low
+
+  * Add custom phone postfix
+
+ -- Roman V. Nikolaev <rshadow@rambler.ru>  Fri, 03 Oct 2014 10:21:23 +0400
+
 libmojolicious-plugin-human-perl (0.8-1) nowtaxi; urgency=low
 
   * Remove ugly region fix

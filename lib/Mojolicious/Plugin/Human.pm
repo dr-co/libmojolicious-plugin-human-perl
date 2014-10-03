@@ -11,7 +11,7 @@ use Carp;
 use DateTime;
 use DateTime::Format::DateParse;
 
-our $VERSION = '0.8';
+our $VERSION = '0.9';
 
 =encoding utf-8
 
@@ -125,7 +125,7 @@ Return distance, without fractional part if possible.
 my $REGEXP_DIGIT = qr{^(-?\d+)(\d{3})};
 
 sub clean_phone($$);
-sub human_phone($$);
+sub human_phone($$$);
 sub date_parse($;$);
 
 
@@ -143,6 +143,7 @@ sub register {
     $conf->{tz}         //= 'local';
 
     $conf->{phone_country}  //= 7;
+    $conf->{phone_add}      //= '.';
 
     # Datetime
 
@@ -202,7 +203,7 @@ sub register {
         return '' unless $str;
         my @phones = split /[\s,;:]+/, $str;
         return join ', ' => grep { $_ } map {
-            human_phone $_, $conf->{phone_country}
+            human_phone $_, $conf->{phone_country}, $conf->{phone_add}
         } @phones;
     });
 
@@ -278,11 +279,11 @@ Make phone string in human readable form.
 
 =cut
 
-sub human_phone($$) {
-    my ($phone, $country) = @_;
+sub human_phone($$$) {
+    my ($phone, $country, $add) = @_;
     $phone = clean_phone $phone, $country;
     return $phone unless $phone;
-    s{^(\+.)(...)(...)(.*)$}{$1-$2-$3-$4}, s{[wp]}{.}ig for $phone;
+    s{^(\+.)(...)(...)(.*)$}{$1-$2-$3-$4}, s{[wp]}{$add}ig for $phone;
     return $phone;
 }
 
