@@ -1,3 +1,10 @@
+libmojolicious-plugin-human-perl (0.10-1) nowtaxi; urgency=low
+
+  * Extract and set user time zone from cookies
+  * More tests
+
+ -- Roman V. Nikolaev <rshadow@rambler.ru>  Wed, 22 Oct 2014 01:00:45 +0400
+
 libmojolicious-plugin-human-perl (0.9-1) nowtaxi; urgency=low
 
   * Add custom phone postfix

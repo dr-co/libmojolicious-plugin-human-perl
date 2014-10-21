@@ -11,7 +11,7 @@ use Carp;
 use DateTime;
 use DateTime::Format::DateParse;
 
-our $VERSION = '0.9';
+our $VERSION = '0.10';
 
 =encoding utf-8
 
@@ -59,9 +59,17 @@ Set format for human readable date and time. Default: %F %H:%M
 
 Set format for human readable time. Default: %H:%M:%S
 
-=item datetime
+=item date
 
 Set format for human readable date. Default: %F
+
+=item tz
+
+Set default time zone for DateTime. Default: local
+
+=item tz_cookie
+
+Set default cookie name for extract time zone from client. Default: tz
 
 =item phone_country
 
@@ -141,15 +149,28 @@ sub register {
     $conf->{time}       //= '%H:%M:%S';
     $conf->{date}       //= '%F';
     $conf->{tz}         //= 'local';
+    $conf->{tz_cookie}  //= 'tz';
 
     $conf->{phone_country}  //= 7;
     $conf->{phone_add}      //= '.';
+
+    # Get timezone from cookies
+    $app->hook(before_dispatch => sub {
+        my ($self) = @_;
+
+        my $tz = $self->cookie( $conf->{tz_cookie} );
+        return unless $tz;
+
+        $self->stash('-human-tz' => $tz);
+    });
 
     # Datetime
 
     $app->helper(str2time => sub {
         my ($self, $str, $tz) = @_;
-        my $datetime = date_parse( $str, $tz // $conf->{tz} );
+        my $datetime = date_parse(
+            $str => $tz || $self->stash('-human-tz') || $conf->{tz}
+        );
         return $str unless $datetime;
         return $datetime->epoch;
     });
@@ -157,28 +178,36 @@ sub register {
     $app->helper(strftime => sub {
         my ($self, $format, $str, $tz) = @_;
         return unless defined $str;
-        my $datetime = date_parse( $str, $tz // $conf->{tz} );
+        my $datetime = date_parse(
+            $str => $tz || $self->stash('-human-tz') || $conf->{tz}
+        );
         return $str unless $datetime;
         return $datetime->strftime( $format );
     });
 
     $app->helper(human_datetime => sub {
         my ($self, $str, $tz) = @_;
-        my $datetime = date_parse( $str, $tz // $conf->{tz} );
+        my $datetime = date_parse(
+            $str => $tz || $self->stash('-human-tz') || $conf->{tz}
+        );
         return $str unless $datetime;
         return $datetime->strftime($conf->{datetime});
     });
 
     $app->helper(human_time => sub {
         my ($self, $str, $tz) = @_;
-        my $datetime = date_parse( $str, $tz // $conf->{tz} );
+        my $datetime = date_parse(
+            $str => $tz || $self->stash('-human-tz') || $conf->{tz}
+        );
         return $str unless $datetime;
         return $datetime->strftime($conf->{time});
     });
 
     $app->helper(human_date => sub {
         my ($self, $str, $tz) = @_;
-        my $datetime = date_parse( $str, $tz // $conf->{tz} );
+        my $datetime = date_parse(
+            $str => $tz || $self->stash('-human-tz') || $conf->{tz}
+        );
         return $str unless $datetime;
         return $datetime->strftime($conf->{date});
     });
@@ -308,6 +337,8 @@ sub date_parse($;$) {
         }
     };
     return if !$dt or $@;
+
+#    $dt->set_time_zone($tz);
 
     return $dt;
 }
