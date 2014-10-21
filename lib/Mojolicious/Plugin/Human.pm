@@ -10,8 +10,9 @@ use Carp;
 
 use DateTime;
 use DateTime::Format::DateParse;
+use DateTime::TimeZone;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 =encoding utf-8
 
@@ -132,16 +133,12 @@ Return distance, without fractional part if possible.
 # Compiled regexp for placement level in the money functions
 my $REGEXP_DIGIT = qr{^(-?\d+)(\d{3})};
 
-sub clean_phone($$);
-sub human_phone($$$);
-sub date_parse($;$);
-
-
 sub register {
     my ($self, $app, $conf) = @_;
 
     # Configuration
     $conf                 ||= {};
+
     $conf->{money_delim}  //= '.';
     $conf->{money_digit}  //= ',';
 
@@ -159,7 +156,9 @@ sub register {
         my ($self) = @_;
 
         my $tz = $self->cookie( $conf->{tz_cookie} );
-        return unless $tz;
+        return unless defined $tz;
+        return unless length  $tz;
+        return unless DateTime::TimeZone->is_valid_name( $tz );
 
         $self->stash('-human-tz' => $tz);
     });
@@ -291,7 +290,7 @@ Return <undef> if phome not correct
 
 =cut
 
-sub clean_phone($$) {
+sub clean_phone {
     my ($phone, $country) = @_;
     return undef unless $phone;
     for ($phone) {
@@ -308,7 +307,7 @@ Make phone string in human readable form.
 
 =cut
 
-sub human_phone($$$) {
+sub human_phone {
     my ($phone, $country, $add) = @_;
     $phone = clean_phone $phone, $country;
     return $phone unless $phone;
@@ -322,7 +321,7 @@ Get a string and return DateTime or undef.
 
 =cut
 
-sub date_parse($;$) {
+sub date_parse {
     my ($str, $tz) = @_;
 
     return unless $str;
@@ -336,9 +335,7 @@ sub date_parse($;$) {
             DateTime::Format::DateParse->parse_datetime( $str, $tz );
         }
     };
-    return if !$dt or $@;
-
-#    $dt->set_time_zone($tz);
+    return if ( !$dt or $@ );
 
     return $dt;
 }

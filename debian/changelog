@@ -1,3 +1,10 @@
+libmojolicious-plugin-human-perl (0.11-1) nowtaxi; urgency=low
+
+  * Fix unknown time zone in cookies
+  * More tests
+
+ -- Roman V. Nikolaev <rshadow@rambler.ru>  Wed, 22 Oct 2014 03:05:29 +0400
+
 libmojolicious-plugin-human-perl (0.10-1) nowtaxi; urgency=low
 
   * Extract and set user time zone from cookies
