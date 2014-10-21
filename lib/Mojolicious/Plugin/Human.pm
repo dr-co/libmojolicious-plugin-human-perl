@@ -133,6 +133,10 @@ Return distance, without fractional part if possible.
 # Compiled regexp for placement level in the money functions
 my $REGEXP_DIGIT = qr{^(-?\d+)(\d{3})};
 
+sub clean_phone;
+sub human_phone;
+sub date_parse;
+
 sub register {
     my ($self, $app, $conf) = @_;
 
