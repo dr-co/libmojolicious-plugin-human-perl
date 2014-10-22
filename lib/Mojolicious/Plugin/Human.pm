@@ -12,7 +12,9 @@ use DateTime;
 use DateTime::Format::DateParse;
 use DateTime::TimeZone;
 
-our $VERSION = '0.11';
+use Mojo::Util qw(url_unescape);
+
+our $VERSION = '0.12';
 
 =encoding utf-8
 
@@ -162,6 +164,8 @@ sub register {
         my $tz = $self->cookie( $conf->{tz_cookie} );
         return unless defined $tz;
         return unless length  $tz;
+
+        $tz = url_unescape $tz;
         return unless DateTime::TimeZone->is_valid_name( $tz );
 
         $self->stash('-human-tz' => $tz);

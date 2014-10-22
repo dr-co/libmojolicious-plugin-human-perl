@@ -1,3 +1,9 @@
+libmojolicious-plugin-human-perl (0.12-1) nowtaxi; urgency=low
+
+  * Add cookie uri escape
+
+ -- Roman V. Nikolaev <rshadow@rambler.ru>  Wed, 22 Oct 2014 04:08:31 +0400
+
 libmojolicious-plugin-human-perl (0.11-1) nowtaxi; urgency=low
 
   * Fix unknown time zone in cookies
