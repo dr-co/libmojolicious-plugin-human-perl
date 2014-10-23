@@ -13,7 +13,7 @@ use DateTime::Format::DateParse;
 use DateTime::TimeZone;
 use Mojo::Util  qw(url_unescape);
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 =encoding utf-8
 
@@ -194,7 +194,7 @@ sub register {
         $tz = url_unescape $tz;
         return unless DateTime::TimeZone->is_valid_name( $tz );
 
-        $self->stash('-human-tz' => $tz);
+        $self->stash('-human-cookie-tz' => $tz);
     });
 
     # Datetime
@@ -213,7 +213,10 @@ sub register {
         return if ( !$dt or $@ );
 
         # time zone: set or force or cookie or default
-        $tz ||= $conf->{tz_force} || $self->stash('-human-tz') || $conf->{tz};
+        $tz ||= $conf->{tz_force}                   ||
+                $self->stash('-human-force-tz')     ||
+                $self->stash('-human-cookie-tz')    ||
+                $conf->{tz};
         # make time zone
         $dt->set_time_zone( $tz );
 
