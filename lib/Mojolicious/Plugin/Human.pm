@@ -7,14 +7,13 @@ use 5.10.0;
 
 use Mojo::Base 'Mojolicious::Plugin';
 use Carp;
-
+use POSIX       qw(strftime);
 use DateTime;
 use DateTime::Format::DateParse;
 use DateTime::TimeZone;
+use Mojo::Util  qw(url_unescape);
 
-use Mojo::Util qw(url_unescape);
-
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 =encoding utf-8
 
@@ -82,6 +81,10 @@ Set country code for phones functions. Default: 7
 
 =head1 DATE AND TIME HELPERS
 
+=head2 str2datetime
+
+Get string or number, return DateTime object
+
 =head2 str2time
 
 Get string, return timestamp
@@ -110,13 +113,17 @@ Get number, return money string in human readable form with levels.
 
 =head1 PHONE HELPERS
 
-=head2 human_phones
-
-Get srtring, return phones (if many) string in human readable form.
-
 =head2 flat_phone
 
 Get srtring, return flat phone string.
+
+=head2 human_phone
+
+Get srtring, return phone string in human readable form.
+
+=head2 human_phones
+
+Get srtring, return phones (if many) string in human readable form.
 
 =head1 TEXT HELPERS
 
@@ -132,12 +139,26 @@ Return distance, without fractional part if possible.
 
 =cut
 
-# Compiled regexp for placement level in the money functions
-my $REGEXP_DIGIT = qr{^(-?\d+)(\d{3})};
+# Placement level in the money functions
+our $REGEXP_DIGIT = qr{^(-?\d+)(\d{3})};
 
-sub clean_phone;
-sub human_phone;
-sub date_parse;
+# Timestamp
+our $REGEXP_TIMESTAMP = qr{^\d+$};
+
+# Fractional part of numbers
+our $REGEXP_FRACTIONAL = qr{\.?0+$};
+# Fractional delimeter of numbers
+our $REGEXP_FRACTIONAL_DELIMITER = qr{\.};
+
+# Phones symbols
+our $REGEXP_PHONE_SYMBOL = qr{[^0-9wp\+]+};
+# Phones command
+our $REGEXP_PHONE_COMMAND = qr{[wp]};
+# Get parts of phone number to make it awesome
+our $REGEXP_PHONE_AWESOME = qr{^(\+.)(...)(...)(.*)$};
+
+# Some values separators
+our $REGEXP_SEPARATOR = qr{[\s,;:]+};
 
 sub register {
     my ($self, $app, $conf) = @_;
@@ -151,7 +172,7 @@ sub register {
     $conf->{datetime}   //= '%F %H:%M';
     $conf->{time}       //= '%H:%M:%S';
     $conf->{date}       //= '%F';
-    $conf->{tz}         //= 'local';
+    $conf->{tz}         //= strftime '%z', localtime;
     $conf->{tz_cookie}  //= 'tz';
 
     $conf->{phone_country}  //= 7;
@@ -173,50 +194,61 @@ sub register {
 
     # Datetime
 
+    $app->helper(str2datetime => sub {
+        my ($self, $str, $tz) = @_;
+        return unless $str;
+
+        my $dt = eval {
+            if( $str =~ m{$REGEXP_TIMESTAMP} ) {
+                DateTime->from_epoch( epoch => $str );
+            } else {
+                DateTime::Format::DateParse->parse_datetime( $str );
+            }
+        };
+        return if ( !$dt or $@ );
+
+        # time zone: set or cookie or default
+        $tz ||= $self->stash('-human-tz') || $conf->{tz};
+        # make time zone
+        $dt->set_time_zone( $tz );
+
+        return $dt;
+    });
+
     $app->helper(str2time => sub {
         my ($self, $str, $tz) = @_;
-        my $datetime = date_parse(
-            $str => $tz || $self->stash('-human-tz') || $conf->{tz}
-        );
+        my $datetime = $self->str2datetime($str => $tz);
         return $str unless $datetime;
-        return $datetime->epoch;
+        return Mojo::ByteStream->new( $datetime->epoch );
     });
 
     $app->helper(strftime => sub {
         my ($self, $format, $str, $tz) = @_;
         return unless defined $str;
-        my $datetime = date_parse(
-            $str => $tz || $self->stash('-human-tz') || $conf->{tz}
-        );
+        my $datetime = $self->str2datetime($str => $tz);
         return $str unless $datetime;
-        return $datetime->strftime( $format );
+        return Mojo::ByteStream->new( $datetime->strftime( $format ) );
     });
 
     $app->helper(human_datetime => sub {
         my ($self, $str, $tz) = @_;
-        my $datetime = date_parse(
-            $str => $tz || $self->stash('-human-tz') || $conf->{tz}
-        );
+        my $datetime = $self->str2datetime($str => $tz);
         return $str unless $datetime;
-        return $datetime->strftime($conf->{datetime});
+        return Mojo::ByteStream->new( $datetime->strftime($conf->{datetime}) );
     });
 
     $app->helper(human_time => sub {
         my ($self, $str, $tz) = @_;
-        my $datetime = date_parse(
-            $str => $tz || $self->stash('-human-tz') || $conf->{tz}
-        );
+        my $datetime = $self->str2datetime($str => $tz);
         return $str unless $datetime;
-        return $datetime->strftime($conf->{time});
+        return Mojo::ByteStream->new( $datetime->strftime($conf->{time}) );
     });
 
     $app->helper(human_date => sub {
         my ($self, $str, $tz) = @_;
-        my $datetime = date_parse(
-            $str => $tz || $self->stash('-human-tz') || $conf->{tz}
-        );
+        my $datetime = $self->str2datetime($str => $tz);
         return $str unless $datetime;
-        return $datetime->strftime($conf->{date});
+        return Mojo::ByteStream->new( $datetime->strftime($conf->{date}) );
     });
 
     # Money
@@ -227,25 +259,55 @@ sub register {
         my $delim = $conf->{money_delim};
         my $digit = $conf->{money_digit};
         $str = sprintf '%.2f', $str;
-        $str =~ s{\.}{$delim};
+        $str =~ s{$REGEXP_FRACTIONAL_DELIMITER}{$delim};
         1 while $str =~ s{$REGEXP_DIGIT}{$1$digit$2};
-        return $str;
+        return Mojo::ByteStream->new($str);
     });
 
     # Phones
 
-    $app->helper(human_phones => sub {
-        my ($self, $str) = @_;
-        return '' unless $str;
-        my @phones = split /[\s,;:]+/, $str;
-        return join ', ' => grep { $_ } map {
-            human_phone $_, $conf->{phone_country}, $conf->{phone_add}
-        } @phones;
+    $app->helper(flat_phone => sub {
+        my ($self, $phone, $country) = @_;
+        return undef unless $phone;
+
+        # clear
+        s/$REGEXP_PHONE_SYMBOL//ig for $phone;
+        return undef unless 10 <= length $phone;
+
+        $country //= $conf->{phone_country};
+        # make full
+        $phone = '+' . $country . $phone unless $phone =~ m{^\+};
+
+        return Mojo::ByteStream->new($phone);
     });
 
-    $app->helper(flat_phone => sub {
-        my ($self, $phone) = @_;
-        return clean_phone( $phone, $conf->{phone_country} ) || '';
+    $app->helper(human_phone => sub {
+        my ($self, $phone, $country, $add) = @_;
+        return unless $phone;
+
+        # make clean
+        $phone = $self->flat_phone( $phone, $country );
+        return $phone unless $phone;
+
+        # make awesome
+        $add //= $conf->{phone_add};
+        s{$REGEXP_PHONE_AWESOME}{$1-$2-$3-$4},
+        s{$REGEXP_PHONE_COMMAND}{$add}ig
+            for $phone;
+
+        return Mojo::ByteStream->new($phone);
+    });
+
+    $app->helper(human_phones => sub {
+        my ($self, $str, $country, $add) = @_;
+        return '' unless $str;
+
+        my @phones = split m{$REGEXP_SEPARATOR}, $str;
+        my $phones = join ', ' => grep { $_ } map {
+            $self->human_phone( $_, $country, $add )
+        } @phones;
+
+        return Mojo::ByteStream->new($phones);
     });
 
     # Text
@@ -275,7 +337,7 @@ sub register {
         $result =
             ( $tail >= 10 and $tail < 21 )  ?$many  :$result;
 
-        return $result;
+        return Mojo::ByteStream->new($result);
     });
 
     # Distance
@@ -283,69 +345,9 @@ sub register {
     $app->helper(human_distance => sub {
         my ($self, $dist) = @_;
         $dist = sprintf '%3.2f', $dist;
-        $dist =~ s{\.?0+$}{};
-        return $dist;
+        $dist =~ s{$REGEXP_FRACTIONAL}{};
+        return Mojo::ByteStream->new($dist);
     });
-}
-
-=head1 INTERNAL FUNCIONS
-
-=head2 clean_phone $phone, $country
-
-Clear phones. Fix first local digit problem.
-
-Return <undef> if phome not correct
-
-=cut
-
-sub clean_phone {
-    my ($phone, $country) = @_;
-    return undef unless $phone;
-    for ($phone) {
-        s/[^0-9wp\+]+//ig;
-        return undef unless 10 <= length $phone;
-        $phone = '+' . $country . $phone unless $phone =~ m{^\+};
-    }
-    return $phone;
-}
-
-=head2 human_phone
-
-Make phone string in human readable form.
-
-=cut
-
-sub human_phone {
-    my ($phone, $country, $add) = @_;
-    $phone = clean_phone $phone, $country;
-    return $phone unless $phone;
-    s{^(\+.)(...)(...)(.*)$}{$1-$2-$3-$4}, s{[wp]}{$add}ig for $phone;
-    return $phone;
-}
-
-=head2 date_parse $str
-
-Get a string and return DateTime or undef.
-
-=cut
-
-sub date_parse {
-    my ($str, $tz) = @_;
-
-    return unless $str;
-
-    $tz //= 'local';
-
-    my $dt = eval {
-        if( $str =~ m{^\d+$} ) {
-            DateTime->from_epoch( epoch => $str, time_zone => $tz );
-        } else {
-            DateTime::Format::DateParse->parse_datetime( $str, $tz );
-        }
-    };
-    return if ( !$dt or $@ );
-
-    return $dt;
 }
 
 1;

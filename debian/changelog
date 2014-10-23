@@ -1,3 +1,11 @@
+libmojolicious-plugin-human-perl (0.13-1) nowtaxi; urgency=low
+
+  * Rewrite phones functions
+  * Rewrite datetime functions to support client time zone
+  * More tests
+
+ -- Roman V. Nikolaev <rshadow@rambler.ru>  Thu, 23 Oct 2014 11:44:11 +0400
+
 libmojolicious-plugin-human-perl (0.12-1) nowtaxi; urgency=low
 
   * Add cookie uri escape

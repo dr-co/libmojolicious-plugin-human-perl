@@ -6,7 +6,7 @@ use utf8;
 use open qw(:std :utf8);
 use lib qw(lib ../lib ../../lib);
 
-use Test::More tests => 90;
+use Test::More tests => 94;
 use Encode qw(decode encode);
 
 
@@ -14,7 +14,9 @@ BEGIN {
     use_ok 'Test::Mojo';
     use_ok 'Mojolicious::Plugin::Human';
     use_ok 'DateTime';
-    use_ok 'Mojo::Util', qw(url_escape);
+    use_ok 'DateTime::Format::DateParse';
+    use_ok 'Mojo::Util',    qw(url_escape);
+    use_ok 'POSIX',         qw(strftime);
 }
 
 {
@@ -33,39 +35,49 @@ ok $t, 'Test Mojo created';
 
 note 'basic';
 {
+    my $time = 60 * 60 * 24;
+    my $dt   = DateTime->from_epoch( epoch => $time );
+    $dt->set_time_zone( strftime '%z', localtime );
+
+    my $str_tz      = $dt->strftime('%F %T %z');
+    my $str_wo_tz   = $dt->strftime('%F %T');
+
     $t->app->routes->get("/test/human")->to( cb => sub {
         my ($self) = @_;
 
-        my $time = 60 * 60 * 24;
-        my $dt   = DateTime->from_epoch( epoch => $time, time_zone  => 'local');
-        my $dstr = $dt->strftime('%F %T %z');
-        my $tstr = $dt->strftime('%F %T');
+        is $self->str2time( $str_tz ),              $dt->epoch,
+            'str2time from ISO';
+        is $self->str2time( $str_wo_tz ),           $dt->epoch,
+            'str2time from ISO wo TZ';
+        is $self->str2time( $time ),                $dt->epoch,
+            'str2time from timestamp';
 
-        is $self->str2time( $dstr ), $dt->epoch, 'str2time';
-        is $self->str2time( $tstr ), $dt->epoch, 'str2time';
+        is $self->strftime('%F %T %z', $str_tz),    $dt->strftime('%F %T %z'),
+            'strftime from ISO';
+        is $self->strftime('%F %T %z', $str_wo_tz), $dt->strftime('%F %T %z'),
+            'strftime from ISO wo TZ';
+        is $self->strftime('%F %T %z', $time),      $dt->strftime('%F %T %z'),
+            'strftime from timestamp';
 
-        is $self->strftime('%T', $dstr), $dt->strftime('%T'),   'strftime';
-        is $self->strftime('%T', $tstr), $dt->strftime('%T'),   'strftime';
-
-        is $self->human_datetime( $dstr ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $str_tz ),        $dt->strftime('%F %H:%M'),
             'human_datetime from ISO';
-        is $self->human_datetime( $tstr ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $str_wo_tz ),     $dt->strftime('%F %H:%M'),
             'human_datetime from ISO wo TZ';
-        is $self->human_datetime( $time ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $time ),          $dt->strftime('%F %H:%M'),
             'human_datetime from timestamp';
 
-        is $self->human_time( $dstr ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $str_tz ),            $dt->strftime('%H:%M:%S'),
             'human_time from ISO';
-        is $self->human_time( $tstr ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $str_wo_tz ),         $dt->strftime('%H:%M:%S'),
             'human_time from ISO wo TZ';
-        is $self->human_time( $time ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $time ),              $dt->strftime('%H:%M:%S'),
             'human_time from timestamp';
 
-        is $self->human_date( $dstr ), $dt->strftime('%F'),
+        is $self->human_date( $str_tz ),            $dt->strftime('%F'),
             'human_date from ISO';
-        is $self->human_date( $tstr ), $dt->strftime('%F'),
+        is $self->human_date( $str_wo_tz ),         $dt->strftime('%F'),
             'human_date from ISO wo TZ';
-        is $self->human_date( $time ), $dt->strftime('%F'),
+        is $self->human_date( $time ),              $dt->strftime('%F'),
             'human_date from timestamp';
 
         $self->render(text => 'OK.');
@@ -78,32 +90,40 @@ note 'basic';
 
 note 'default timezone';
 {
+    my $time    = 60 * 60 * 24;
+
+    my $tz_source   = DateTime::TimeZone->new(name => '-0200');
+    my $tz_dest     = DateTime::TimeZone->new(name => '+0400');
+
+    my $from    = DateTime->from_epoch(epoch => $time, time_zone => $tz_source);
+    my $str     = $from->strftime('%F %T %z');
+
+    my $to      = $from->clone;
+    $to->set_time_zone( $tz_dest );
+
     $t->app->routes->get("/test/human/default")->to( cb => sub {
         my ($self) = @_;
 
-        $self->app->plugin('Human', tz => '-0200');
+        $self->app->plugin('Human', tz => $tz_dest->name);
 
-        my $time = 60 * 60 * 24;
-        my $dt   = DateTime->from_epoch( epoch => $time, time_zone  => '-0200');
-        my $dstr = $dt->strftime('%F %T +0400');
+        is $self->str2time( $str ),             $to->epoch, 'str2time';
 
-        is $self->str2time( $dstr ), $dt->epoch, 'str2time';
+        is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
+            'strftime';
 
-        is $self->strftime('%T', $dstr), $dt->strftime('%T'),   'strftime';
-
-        is $self->human_datetime( $dstr ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
-        is $self->human_datetime( $time ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $time ),      $to->strftime('%F %H:%M'),
             'human_datetime from timestamp';
 
-        is $self->human_time( $dstr ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $str ),           $to->strftime('%H:%M:%S'),
             'human_time from ISO';
-        is $self->human_time( $time ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $time ),          $to->strftime('%H:%M:%S'),
             'human_time from timestamp';
 
-        is $self->human_date( $dstr ), $dt->strftime('%F'),
+        is $self->human_date( $str ),           $to->strftime('%F'),
             'human_date from ISO';
-        is $self->human_date( $time ), $dt->strftime('%F'),
+        is $self->human_date( $time ),          $to->strftime('%F'),
             'human_date from timestamp';
 
         $self->app->plugin('Human', tz => 'local');
@@ -116,36 +136,43 @@ note 'default timezone';
     diag decode utf8 => $t->tx->res->body unless $t->tx->success;
 }
 
+
 note 'set timezone';
 {
+    my $time    = 60 * 60 * 24;
+
+    my $tz_source   = DateTime::TimeZone->new(name => '-0300');
+    my $tz_dest     = DateTime::TimeZone->new(name => '+0100');
+
+    my $from    = DateTime->from_epoch(epoch => $time, time_zone => $tz_source);
+    my $str     = $from->strftime('%F %T %z');
+
+    my $to      = $from->clone;
+    $to->set_time_zone( $tz_dest );
+
     $t->app->routes->get("/test/human/tz")->to( cb => sub {
         my ($self) = @_;
 
-        $self->app->plugin('Human', tz => '-0200');
+        $self->app->plugin('Human', tz => $tz_dest->name);
 
-        my $tz = '-0300';
+        is $self->str2time( $str ),             $to->epoch, 'str2time';
 
-        my $time = 60 * 60 * 24;
-        my $dt = DateTime->from_epoch( epoch => $time, time_zone  => $tz);
-        my $dstr = $dt->strftime("%F %T +0100");
+        is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
+            'strftime';
 
-        is $self->str2time( $dstr, $tz ), $dt->epoch, 'str2time';
-
-        is $self->strftime('%T', $dstr, $tz), $dt->strftime('%T'),   'strftime';
-
-        is $self->human_datetime( $dstr, $tz ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
-        is $self->human_datetime( $time, $tz ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $time ),      $to->strftime('%F %H:%M'),
             'human_datetime from timestamp';
 
-        is $self->human_time( $dstr, $tz ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $str ),           $to->strftime('%H:%M:%S'),
             'human_time from ISO';
-        is $self->human_time( $time, $tz ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $time ),          $to->strftime('%H:%M:%S'),
             'human_time from timestamp';
 
-        is $self->human_date( $dstr, $tz ), $dt->strftime('%F'),
+        is $self->human_date( $str ),           $to->strftime('%F'),
             'human_date from ISO';
-        is $self->human_date( $time, $tz ), $dt->strftime('%F'),
+        is $self->human_date( $time ),          $to->strftime('%F'),
             'human_date from timestamp';
 
         $self->app->plugin('Human', tz => 'local');
@@ -160,34 +187,41 @@ note 'set timezone';
 
 note 'cookie timezone numeric';
 {
-    my $tz = '-0300';
+    my $time    = 60 * 60 * 24;
+
+    my $tz_source   = DateTime::TimeZone->new(name => '-0200');
+    my $tz_dest     = DateTime::TimeZone->new(name => '+0600');
+    my $tz_default  = DateTime::TimeZone->new(name => '+0300');
+
+    my $from    = DateTime->from_epoch(epoch => $time, time_zone => $tz_source);
+    my $str     = $from->strftime('%F %T %z');
+
+    my $to      = $from->clone;
+    $to->set_time_zone( $tz_dest );
 
     $t->app->routes->get("/test/human/cookie/num")->to( cb => sub {
         my ($self) = @_;
 
-        $self->app->plugin('Human', tz => '-0200');
+       $self->app->plugin('Human', tz => $tz_default->name);
 
-        my $time = 60 * 60 * 24;
-        my $dt   = DateTime->from_epoch( epoch => $time, time_zone  => $tz);
-        my $dstr = $dt->strftime('%F %T +0600');
+        is $self->str2time( $str ),             $to->epoch, 'str2time';
 
-        is $self->str2time( $dstr ), $dt->epoch, 'str2time';
+        is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
+            'strftime';
 
-        is $self->strftime('%T', $dstr), $dt->strftime('%T'),   'strftime';
-
-        is $self->human_datetime( $dstr ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
-        is $self->human_datetime( $time ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $time ),      $to->strftime('%F %H:%M'),
             'human_datetime from timestamp';
 
-        is $self->human_time( $dstr ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $str ),           $to->strftime('%H:%M:%S'),
             'human_time from ISO';
-        is $self->human_time( $time ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $time ),          $to->strftime('%H:%M:%S'),
             'human_time from timestamp';
 
-        is $self->human_date( $dstr ), $dt->strftime('%F'),
+        is $self->human_date( $str ),           $to->strftime('%F'),
             'human_date from ISO';
-        is $self->human_date( $time ), $dt->strftime('%F'),
+        is $self->human_date( $time ),          $to->strftime('%F'),
             'human_date from timestamp';
 
         $self->app->plugin('Human', tz => 'local');
@@ -195,7 +229,10 @@ note 'cookie timezone numeric';
         $self->render(text => 'OK.');
     });
 
-    my $cookie = Mojo::Cookie::Request->new(name => 'tz', value => $tz);
+    my $cookie = Mojo::Cookie::Request->new(
+        name    => 'tz',
+        value   => $tz_dest->name,
+    );
 
     $t  -> get_ok("/test/human/cookie/num" => {'Cookie' => $cookie->to_string} )
         -> status_is( 200 );
@@ -203,37 +240,45 @@ note 'cookie timezone numeric';
     diag decode utf8 => $t->tx->res->body unless $t->tx->success;
 }
 
+
+
 note 'cookie timezone numeric escaped';
 {
-    my $tz  = '+0300';
-    my $esc = url_escape $tz;
+    my $time    = 60 * 60 * 24;
+
+    my $tz_source   = DateTime::TimeZone->new(name => '-0200');
+    my $tz_dest     = DateTime::TimeZone->new(name => '+0300');
+    my $tz_default  = DateTime::TimeZone->new(name => '+0700');
+
+    my $from    = DateTime->from_epoch(epoch => $time, time_zone => $tz_source);
+    my $str     = $from->strftime('%F %T %z');
+
+    my $to      = $from->clone;
+    $to->set_time_zone( $tz_dest );
 
     $t->app->routes->get("/test/human/cookie/esc")->to( cb => sub {
         my ($self) = @_;
 
-        $self->app->plugin('Human', tz => '-0200');
+       $self->app->plugin('Human', tz => $tz_default->name);
 
-        my $time = 60 * 60 * 24;
-        my $dt   = DateTime->from_epoch( epoch => $time, time_zone  => $tz);
-        my $dstr = $dt->strftime('%F %T +0600');
+        is $self->str2time( $str ),             $to->epoch, 'str2time';
 
-        is $self->str2time( $dstr ), $dt->epoch, 'str2time';
+        is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
+            'strftime';
 
-        is $self->strftime('%T', $dstr), $dt->strftime('%T'),   'strftime';
-
-        is $self->human_datetime( $dstr ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
-        is $self->human_datetime( $time ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $time ),      $to->strftime('%F %H:%M'),
             'human_datetime from timestamp';
 
-        is $self->human_time( $dstr ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $str ),           $to->strftime('%H:%M:%S'),
             'human_time from ISO';
-        is $self->human_time( $time ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $time ),          $to->strftime('%H:%M:%S'),
             'human_time from timestamp';
 
-        is $self->human_date( $dstr ), $dt->strftime('%F'),
+        is $self->human_date( $str ),           $to->strftime('%F'),
             'human_date from ISO';
-        is $self->human_date( $time ), $dt->strftime('%F'),
+        is $self->human_date( $time ),          $to->strftime('%F'),
             'human_date from timestamp';
 
         $self->app->plugin('Human', tz => 'local');
@@ -241,7 +286,10 @@ note 'cookie timezone numeric escaped';
         $self->render(text => 'OK.');
     });
 
-    my $cookie = Mojo::Cookie::Request->new(name => 'tz', value => $esc);
+    my $cookie = Mojo::Cookie::Request->new(
+        name    => 'tz',
+        value   => url_escape $tz_dest->name,
+    );
 
     $t  -> get_ok("/test/human/cookie/esc" => {'Cookie' => $cookie->to_string} )
         -> status_is( 200 );
@@ -251,35 +299,41 @@ note 'cookie timezone numeric escaped';
 
 note 'cookie timezone alpha';
 {
-    my $tz = 'America/New_York';
+    my $time    = 60 * 60 * 24;
+
+    my $tz_source   = DateTime::TimeZone->new(name => '+0600');
+    my $tz_dest     = DateTime::TimeZone->new(name => 'America/New_York');
+    my $tz_default  = DateTime::TimeZone->new(name => 'Asia/Kolkata');
+
+    my $from    = DateTime->from_epoch(epoch => $time, time_zone => $tz_source);
+    my $str     = $from->strftime('%F %T %z');
+
+    my $to      = $from->clone;
+    $to->set_time_zone( $tz_dest );
 
     $t->app->routes->get("/test/human/cookie/alp")->to( cb => sub {
         my ($self) = @_;
 
-        $self->app->plugin('Human', tz => 'Asia/Kolkata');
+        $self->app->plugin('Human', tz => $tz_default->name);
 
-        my $time = 60 * 60 * 24;
-        my $dt   = DateTime->from_epoch( epoch => $time, time_zone  => $tz);
+        is $self->str2time( $str ),             $to->epoch, 'str2time';
 
-        my $dstr = $dt->strftime('%F %T +0600');
+        is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
+            'strftime';
 
-        is $self->str2time( $dstr ), $dt->epoch, 'str2time';
-
-        is $self->strftime('%T', $dstr), $dt->strftime('%T'),   'strftime';
-
-        is $self->human_datetime( $dstr ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
-        is $self->human_datetime( $time ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $time ),      $to->strftime('%F %H:%M'),
             'human_datetime from timestamp';
 
-        is $self->human_time( $dstr ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $str ),           $to->strftime('%H:%M:%S'),
             'human_time from ISO';
-        is $self->human_time( $time ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $time ),          $to->strftime('%H:%M:%S'),
             'human_time from timestamp';
 
-        is $self->human_date( $dstr ), $dt->strftime('%F'),
+        is $self->human_date( $str ),           $to->strftime('%F'),
             'human_date from ISO';
-        is $self->human_date( $time ), $dt->strftime('%F'),
+        is $self->human_date( $time ),          $to->strftime('%F'),
             'human_date from timestamp';
 
         $self->app->plugin('Human', tz => 'local');
@@ -287,7 +341,10 @@ note 'cookie timezone alpha';
         $self->render(text => 'OK.');
     });
 
-    my $cookie = Mojo::Cookie::Request->new(name => 'tz', value => $tz);
+    my $cookie = Mojo::Cookie::Request->new(
+        name    => 'tz',
+        value   => $tz_dest->name,
+    );
 
     $t  -> get_ok("/test/human/cookie/alp" => {'Cookie' => $cookie->to_string} )
         -> status_is( 200 );
@@ -297,35 +354,40 @@ note 'cookie timezone alpha';
 
 note 'cookie timezone error';
 {
-    my $tz = 'SomeStringNotTimeZone!';
+    my $time    = 60 * 60 * 24;
+
+    my $tz_source   = DateTime::TimeZone->new(name => '+0600');
+    my $tz_default  = DateTime::TimeZone->new(name => 'Asia/Kolkata');
+
+    my $from    = DateTime->from_epoch(epoch => $time, time_zone => $tz_source);
+    my $str     = $from->strftime('%F %T %z');
+
+    my $to      = $from->clone;
+    $to->set_time_zone( $tz_default ); # default on error
 
     $t->app->routes->get("/test/human/cookie/err")->to( cb => sub {
         my ($self) = @_;
 
-        my $default = 'Asia/Kolkata';
-        $self->app->plugin('Human', tz => $default);
+        $self->app->plugin('Human', tz => $tz_default->name);
 
-        my $time = 60 * 60 * 24;
-        my $dt   = DateTime->from_epoch( epoch => $time, time_zone => $default);
-        my $dstr = $dt->strftime('%F %T %z');
+        is $self->str2time( $str ),             $to->epoch, 'str2time';
 
-        is $self->str2time( $dstr ), $dt->epoch, 'str2time';
+        is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
+            'strftime';
 
-        is $self->strftime('%T', $dstr), $dt->strftime('%T'),   'strftime';
-
-        is $self->human_datetime( $dstr ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
-        is $self->human_datetime( $time ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $time ),      $to->strftime('%F %H:%M'),
             'human_datetime from timestamp';
 
-        is $self->human_time( $dstr ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $str ),           $to->strftime('%H:%M:%S'),
             'human_time from ISO';
-        is $self->human_time( $time ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $time ),          $to->strftime('%H:%M:%S'),
             'human_time from timestamp';
 
-        is $self->human_date( $dstr ), $dt->strftime('%F'),
+        is $self->human_date( $str ),           $to->strftime('%F'),
             'human_date from ISO';
-        is $self->human_date( $time ), $dt->strftime('%F'),
+        is $self->human_date( $time ),          $to->strftime('%F'),
             'human_date from timestamp';
 
         $self->app->plugin('Human', tz => 'local');
@@ -333,7 +395,10 @@ note 'cookie timezone error';
         $self->render(text => 'OK.');
     });
 
-    my $cookie = Mojo::Cookie::Request->new(name => 'tz', value => $tz);
+    my $cookie = Mojo::Cookie::Request->new(
+        name    => 'tz',
+        value   => 'SomeStringNotTimeZone!',
+    );
 
     $t  -> get_ok("/test/human/cookie/err" => {'Cookie' => $cookie->to_string} )
         -> status_is( 200 );
@@ -343,35 +408,40 @@ note 'cookie timezone error';
 
 note 'cookie timezone like something right';
 {
-    my $tz = 'SomeStringNotTimeZone/SomeStringNotTimeZone';
+    my $time    = 60 * 60 * 24;
+
+    my $tz_source   = DateTime::TimeZone->new(name => '+0600');
+    my $tz_default  = DateTime::TimeZone->new(name => 'Asia/Kolkata');
+
+    my $from    = DateTime->from_epoch(epoch => $time, time_zone => $tz_source);
+    my $str     = $from->strftime('%F %T %z');
+
+    my $to      = $from->clone;
+    $to->set_time_zone( $tz_default ); # default on error
 
     $t->app->routes->get("/test/human/cookie/like")->to( cb => sub {
         my ($self) = @_;
 
-        my $default = 'Asia/Kolkata';
-        $self->app->plugin('Human', tz => $default);
+        $self->app->plugin('Human', tz => $tz_default->name);
 
-        my $time = 60 * 60 * 24;
-        my $dt   = DateTime->from_epoch( epoch => $time, time_zone => $default);
-        my $dstr = $dt->strftime('%F %T %z');
+        is $self->str2time( $str ),             $to->epoch, 'str2time';
 
-        is $self->str2time( $dstr ), $dt->epoch, 'str2time';
+        is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
+            'strftime';
 
-        is $self->strftime('%T', $dstr), $dt->strftime('%T'),   'strftime';
-
-        is $self->human_datetime( $dstr ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
-        is $self->human_datetime( $time ), $dt->strftime('%F %H:%M'),
+        is $self->human_datetime( $time ),      $to->strftime('%F %H:%M'),
             'human_datetime from timestamp';
 
-        is $self->human_time( $dstr ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $str ),           $to->strftime('%H:%M:%S'),
             'human_time from ISO';
-        is $self->human_time( $time ), $dt->strftime('%H:%M:%S'),
+        is $self->human_time( $time ),          $to->strftime('%H:%M:%S'),
             'human_time from timestamp';
 
-        is $self->human_date( $dstr ), $dt->strftime('%F'),
+        is $self->human_date( $str ),           $to->strftime('%F'),
             'human_date from ISO';
-        is $self->human_date( $time ), $dt->strftime('%F'),
+        is $self->human_date( $time ),          $to->strftime('%F'),
             'human_date from timestamp';
 
         $self->app->plugin('Human', tz => 'local');
@@ -379,7 +449,10 @@ note 'cookie timezone like something right';
         $self->render(text => 'OK.');
     });
 
-    my $cookie = Mojo::Cookie::Request->new(name => 'tz', value => $tz);
+    my $cookie = Mojo::Cookie::Request->new(
+        name    => 'tz',
+        value   => 'SomeStringNotTimeZone/SomeStringNotTimeZone',
+    );
 
     $t  -> get_ok("/test/human/cookie/like" => {'Cookie' => $cookie->to_string})
         -> status_is( 200 );
