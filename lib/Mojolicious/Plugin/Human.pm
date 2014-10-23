@@ -13,7 +13,7 @@ use DateTime::Format::DateParse;
 use DateTime::TimeZone;
 use Mojo::Util  qw(url_unescape);
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 =encoding utf-8
 
@@ -68,6 +68,10 @@ Set format for human readable date. Default: %F
 =item tz
 
 Set default time zone for DateTime. Default: local
+
+=item tz_force
+
+Force use time zone
 
 =item tz_cookie
 
@@ -173,6 +177,7 @@ sub register {
     $conf->{time}       //= '%H:%M:%S';
     $conf->{date}       //= '%F';
     $conf->{tz}         //= strftime '%z', localtime;
+    $conf->{tz_force}   //= undef;
     $conf->{tz_cookie}  //= 'tz';
 
     $conf->{phone_country}  //= 7;
@@ -207,8 +212,8 @@ sub register {
         };
         return if ( !$dt or $@ );
 
-        # time zone: set or cookie or default
-        $tz ||= $self->stash('-human-tz') || $conf->{tz};
+        # time zone: set or force or cookie or default
+        $tz ||= $conf->{tz_force} || $self->stash('-human-tz') || $conf->{tz};
         # make time zone
         $dt->set_time_zone( $tz );
 

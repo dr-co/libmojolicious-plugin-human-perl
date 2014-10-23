@@ -1,3 +1,9 @@
+libmojolicious-plugin-human-perl (0.14-1) nowtaxi; urgency=low
+
+  * Add force time zone parameter
+
+ -- Roman V. Nikolaev <rshadow@rambler.ru>  Thu, 23 Oct 2014 13:04:06 +0400
+
 libmojolicious-plugin-human-perl (0.13-1) nowtaxi; urgency=low
 
   * Rewrite phones functions
