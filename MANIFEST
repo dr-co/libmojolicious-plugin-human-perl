@@ -2,6 +2,11 @@ lib/Mojolicious/Plugin/Human.pm
 Makefile.PL
 MANIFEST
 README.md
+t/030_phones.t
+t/010_date_time.t
 t/001_use_ok.t
+t/060_interval.t
+t/020_money.t
+t/050_distance.t
 t/005_compile.t
-t/010_human.t
+t/040_suffix.t
