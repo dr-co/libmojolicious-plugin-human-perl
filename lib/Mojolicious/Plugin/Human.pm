@@ -29,13 +29,22 @@ Mojolicious::Plugin::Human - Helpers to print values as human readable form.
         money_delim => ",",
         money_digit => " ",
 
-        # Or change date and time strings
+        # Local format for date and time strings
         datetime    => '%d.%m.%Y %H:%M',
         time        => '%H:%M:%S',
         date        => '%d.%m.%Y',
 
         phone_country   => 1,
     });
+
+    # Controllers
+
+    $self->human_datetime( time );
+
+    # Templates
+
+    # return '2015-05-23 13:63'
+    %= human_datetime '2015-05-23 13:63:67 +0400'
 
 =head1 DESCRIPTION
 
@@ -84,6 +93,10 @@ Force use time zone
 =item tz_cookie
 
 Set default cookie name for extract time zone from client. Default: tz
+
+=item interval_format
+
+Set default time format for intervals. Default : %0.2d:%0.2d:%0.2d
 
 =item phone_country
 
@@ -134,6 +147,10 @@ Optional get $tz timezone.
 
 Get $str string, return date string in human readable form.
 Optional get $tz timezone.
+
+=head2 human_interval $sec
+
+Get count of seconds and return interval human readable form.
 
 =head1 MONEY HELPERS
 
@@ -196,26 +213,27 @@ sub register {
     my ($self, $app, $conf) = @_;
 
     # Configuration
-    $conf                   ||= {};
+    $conf                       ||= {};
 
-    $conf->{money_format}   //= '%.2f';
-    $conf->{money_delim}    //= '.';
-    $conf->{money_digit}    //= ',';
+    $conf->{money_format}       //= '%.2f';
+    $conf->{money_delim}        //= '.';
+    $conf->{money_digit}        //= ',';
 
-    $conf->{datefull}       //= '%F %T';
-    $conf->{datetime}       //= '%F %H:%M';
-    $conf->{time}           //= '%H:%M:%S';
-    $conf->{date}           //= '%F';
-    $conf->{tz}             //= strftime '%z', localtime;
-    $conf->{tz_force}       //= undef;
-    $conf->{tz_cookie}      //= 'tz';
+    $conf->{datefull}           //= '%F %T';
+    $conf->{datetime}           //= '%F %H:%M';
+    $conf->{time}               //= '%H:%M:%S';
+    $conf->{date}               //= '%F';
+    $conf->{tz}                 //= strftime '%z', localtime;
+    $conf->{tz_force}           //= undef;
+    $conf->{tz_cookie}          //= 'tz';
+    $conf->{interval_format}    //= '%0.2d:%0.2d:%0.2d';
 
-    $conf->{phone_country}  //= 7;
-    $conf->{phone_add}      //= '.';
+    $conf->{phone_country}      //= 7;
+    $conf->{phone_add}          //= '.';
 
-    $conf->{suffix_one}     //= '';
-    $conf->{suffix_two}     //= 'a';
-    $conf->{suffix_many}    //= 'ов';
+    $conf->{suffix_one}         //= '';
+    $conf->{suffix_two}         //= 'a';
+    $conf->{suffix_many}        //= 'ов';
 
     # Get timezone from cookies
     $app->hook(before_dispatch => sub {
@@ -298,6 +316,26 @@ sub register {
         my $datetime = $self->str2datetime($str => $tz);
         return $str unless $datetime;
         return Mojo::ByteStream->new( $datetime->strftime($conf->{date}) );
+    });
+
+    $app->helper(human_interval => sub {
+        my ($self, $sec) = @_;
+
+        return unless defined $sec;
+
+        my $epoch = abs $sec;
+
+        my $seconds = $epoch               % 60;
+        my $minutes = int($epoch / 60)     % 60;
+        my $hours   = int($epoch / 3600)   % 24;
+        my $days    = int($epoch / 86400);
+
+        my $time = '';
+        $time .= sprintf $conf->{interval_format}, $hours, $minutes, $seconds;
+        $time  = sprintf '%d %s', $days, $time if $days;
+        $time  = ($sec < 0 ? '-' : '') . $time;
+
+        return $time;
     });
 
     # Money
