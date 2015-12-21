@@ -105,47 +105,55 @@ Set default suffix for other values.
 
 =head1 DATE AND TIME HELPERS
 
-=head2 str2datetime
+=head2 str2datetime $str, $tz
 
-Get string or number, return DateTime object
+Get string or number, return DateTime object.
+Optional get $tz timezone.
 
-=head2 str2time
+=head2 str2time $str, $tz
 
-Get string, return timestamp
+Get string, return timestamp.
+Optional get $tz timezone.
 
-=head2 strftime
+=head2 strftime $str, $tz
 
-Get string, return formatted string
+Get string, return formatted string.
+Optional get $tz timezone.
 
-=head2 human_datetime
+=head2 human_datetime $str, $tz
 
 Get string, return date and time string in human readable form.
+Optional get $tz timezone.
 
-=head2 human_time
+=head2 human_time $str, $tz
 
 Get string, return time string in human readable form.
+Optional get $tz timezone.
 
-=head2 human_date
+=head2 human_date $str, $tz
 
-Get string, return date string in human readable form.
+Get $str string, return date string in human readable form.
+Optional get $tz timezone.
 
 =head1 MONEY HELPERS
 
-=head2 human_money
+=head2 human_money $str
+
+=head2 human_money $format, $str
 
 Get number, return money string in human readable form with levels.
 
 =head1 PHONE HELPERS
 
-=head2 flat_phone
+=head2 flat_phone $str, $country
 
 Get srtring, return flat phone string.
 
-=head2 human_phone
+=head2 human_phone $str, $country, $add
 
 Get srtring, return phone string in human readable form.
 
-=head2 human_phones
+=head2 human_phones $str, $country, $add
 
 Get srtring, return phones (if many) string in human readable form.
 
@@ -157,7 +165,7 @@ Get word base form and add some of suffix ($one, $two, $many) depends of $count
 
 =head1 DISTANCE HELPERS
 
-=head2 human_distance
+=head2 human_distance $dist
 
 Return distance, without fractional part if possible.
 
