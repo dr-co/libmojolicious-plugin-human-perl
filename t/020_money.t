@@ -6,7 +6,7 @@ use utf8;
 use open qw(:std :utf8);
 use lib qw(lib ../lib ../../lib);
 
-use Test::More tests => 9;
+use Test::More tests => 10;
 use Encode qw(decode encode);
 
 
@@ -36,6 +36,9 @@ $t->app->routes->get("/test/human")->to( cb => sub {
     is $self->human_money,                  undef,      'human_money undefined';
     is $self->human_money(''),              '',         'human_money empty';
     is $self->human_money('12345678.00'),   '12,345,678.00',  'human_money';
+
+    is $self->human_money('%d' => 12345678.50), '12,345,678',
+        'formatted human_money';
 
     $self->render(text => 'OK.');
 });

@@ -174,6 +174,7 @@ sub register {
     # Configuration
     $conf                   ||= {};
 
+    $conf->{money_format}   //= '%.2f';
     $conf->{money_delim}    //= '.';
     $conf->{money_digit}    //= ',';
 
@@ -274,11 +275,13 @@ sub register {
     # Money
 
     $app->helper(human_money => sub {
-        my ($self, $str) = @_;
+        my $self    = shift;
+        my $str     = pop;
+        my $format  = shift // $conf->{money_format};
         return $str if !defined($str) || !length($str);
         my $delim = $conf->{money_delim};
         my $digit = $conf->{money_digit};
-        $str = sprintf '%.2f', $str;
+        $str = sprintf $format, $str;
         $str =~ s{$REGEXP_FRACTIONAL_DELIMITER}{$delim};
         1 while $str =~ s{$REGEXP_DIGIT}{$1$digit$2};
         return Mojo::ByteStream->new($str);
