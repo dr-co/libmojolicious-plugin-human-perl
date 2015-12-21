@@ -85,6 +85,18 @@ Set default cookie name for extract time zone from client. Default: tz
 
 Set country code for phones functions. Default: 7
 
+=item suffix_one
+
+Set default suffix for 1 value.
+
+=item suffix_two
+
+Set default suffix for value between 2 and 5.
+
+=item suffix_many
+
+Set default suffix for other values.
+
 =back
 
 =head1 DATE AND TIME HELPERS
@@ -188,6 +200,10 @@ sub register {
 
     $conf->{phone_country}  //= 7;
     $conf->{phone_add}      //= '.';
+
+    $conf->{suffix_one}     //= '';
+    $conf->{suffix_two}     //= 'a';
+    $conf->{suffix_many}    //= 'ов';
 
     # Get timezone from cookies
     $app->hook(before_dispatch => sub {
@@ -345,9 +361,9 @@ sub register {
         my $tail = abs( $count ) % 10;
 
         # Default suffix
-        $one  //= $str;
-        $two  //= $str . 'a';
-        $many //= $str . 'ов';
+        $one  //= $str  . $conf->{suffix_one};
+        $two  //= $str  . $conf->{suffix_two};
+        $many //= $str  . $conf->{suffix_many};
 
         # Get right suffix
         my $result =
