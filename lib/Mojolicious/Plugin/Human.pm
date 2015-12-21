@@ -53,6 +53,10 @@ Set format for human readable delimiter of money. Default: <.>
 
 Set format for human readable digits of money. Default: <,>
 
+=item datefull
+
+Set full format for human readable date and time. Default: %F %T
+
 =item datetime
 
 Set format for human readable date and time. Default: %F %H:%M
