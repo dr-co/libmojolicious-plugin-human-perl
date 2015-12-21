@@ -45,13 +45,17 @@ You can use this module in Mojo template engine to make you users happy.
 
 =over
 
+=item money_format
+
+Set printf like money format. Default B<%.2f>
+
 =item money_delim
 
-Set format for human readable delimiter of money. Default: <.>
+Set format for human readable delimiter of money. Default: B<.>
 
 =item money_digit
 
-Set format for human readable digits of money. Default: <,>
+Set format for human readable digits of money. Default: B<,>
 
 =item datefull
 
