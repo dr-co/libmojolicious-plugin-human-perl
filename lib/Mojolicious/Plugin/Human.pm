@@ -13,7 +13,7 @@ use DateTime::Format::DateParse;
 use DateTime::TimeZone;
 use Mojo::Util  qw(url_unescape);
 
-our $VERSION = '0.15';
+our $VERSION = '0.16';
 
 =encoding utf-8
 
@@ -168,17 +168,18 @@ sub register {
     my ($self, $app, $conf) = @_;
 
     # Configuration
-    $conf                 ||= {};
+    $conf                   ||= {};
 
-    $conf->{money_delim}  //= '.';
-    $conf->{money_digit}  //= ',';
+    $conf->{money_delim}    //= '.';
+    $conf->{money_digit}    //= ',';
 
-    $conf->{datetime}   //= '%F %H:%M';
-    $conf->{time}       //= '%H:%M:%S';
-    $conf->{date}       //= '%F';
-    $conf->{tz}         //= strftime '%z', localtime;
-    $conf->{tz_force}   //= undef;
-    $conf->{tz_cookie}  //= 'tz';
+    $conf->{datefull}       //= '%F %T';
+    $conf->{datetime}       //= '%F %H:%M';
+    $conf->{time}           //= '%H:%M:%S';
+    $conf->{date}           //= '%F';
+    $conf->{tz}             //= strftime '%z', localtime;
+    $conf->{tz_force}       //= undef;
+    $conf->{tz_cookie}      //= 'tz';
 
     $conf->{phone_country}  //= 7;
     $conf->{phone_add}      //= '.';
@@ -236,6 +237,13 @@ sub register {
         my $datetime = $self->str2datetime($str => $tz);
         return $str unless $datetime;
         return Mojo::ByteStream->new( $datetime->strftime( $format ) );
+    });
+
+    $app->helper(human_datefull => sub {
+        my ($self, $str, $tz) = @_;
+        my $datetime = $self->str2datetime($str => $tz);
+        return $str unless $datetime;
+        return Mojo::ByteStream->new( $datetime->strftime($conf->{datefull}) );
     });
 
     $app->helper(human_datetime => sub {

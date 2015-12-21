@@ -6,7 +6,7 @@ use utf8;
 use open qw(:std :utf8);
 use lib qw(lib ../lib ../../lib);
 
-use Test::More tests => 114;
+use Test::More tests => 135;
 use Encode qw(decode encode);
 
 
@@ -58,6 +58,13 @@ note 'basic';
             'strftime from ISO wo TZ';
         is $self->strftime('%F %T %z', $time),      $dt->strftime('%F %T %z'),
             'strftime from timestamp';
+
+        is $self->human_datefull( $str_tz ),        $dt->strftime('%F %T'),
+            'human_datefull from ISO';
+        is $self->human_datefull( $str_wo_tz ),     $dt->strftime('%F %T'),
+            'human_datefull from ISO wo TZ';
+        is $self->human_datefull( $time ),          $dt->strftime('%F %T'),
+            'human_datefull from timestamp';
 
         is $self->human_datetime( $str_tz ),        $dt->strftime('%F %H:%M'),
             'human_datetime from ISO';
@@ -111,6 +118,11 @@ note 'default timezone';
         is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
             'strftime';
 
+        is $self->human_datefull( $str ),       $to->strftime('%F %T'),
+            'human_datefull from ISO';
+        is $self->human_datefull( $time ),      $to->strftime('%F %T'),
+            'human_datefull from timestamp';
+
         is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
         is $self->human_datetime( $time ),      $to->strftime('%F %H:%M'),
@@ -160,6 +172,11 @@ note 'set timezone';
         is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
             'strftime';
 
+        is $self->human_datefull( $str ),       $to->strftime('%F %T'),
+            'human_datefull from ISO';
+        is $self->human_datefull( $time ),      $to->strftime('%F %T'),
+            'human_datefull from timestamp';
+
         is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
         is $self->human_datetime( $time ),      $to->strftime('%F %H:%M'),
@@ -208,6 +225,11 @@ note 'cookie timezone numeric';
 
         is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
             'strftime';
+
+        is $self->human_datefull( $str ),       $to->strftime('%F %T'),
+            'human_datefull from ISO';
+        is $self->human_datefull( $time ),      $to->strftime('%F %T'),
+            'human_datefull from timestamp';
 
         is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
@@ -264,6 +286,11 @@ note 'cookie timezone numeric escaped';
         is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
             'strftime';
 
+        is $self->human_datefull( $str ),       $to->strftime('%F %T'),
+            'human_datefull from ISO';
+        is $self->human_datefull( $time ),      $to->strftime('%F %T'),
+            'human_datefull from timestamp';
+
         is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
         is $self->human_datetime( $time ),      $to->strftime('%F %H:%M'),
@@ -319,6 +346,11 @@ note 'cookie timezone alpha';
         is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
             'strftime';
 
+        is $self->human_datefull( $str ),       $to->strftime('%F %T'),
+            'human_datefull from ISO';
+        is $self->human_datefull( $time ),      $to->strftime('%F %T'),
+            'human_datefull from timestamp';
+
         is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
         is $self->human_datetime( $time ),      $to->strftime('%F %H:%M'),
@@ -373,6 +405,11 @@ note 'cookie timezone error';
         is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
             'strftime';
 
+        is $self->human_datefull( $str ),       $to->strftime('%F %T'),
+            'human_datefull from ISO';
+        is $self->human_datefull( $time ),      $to->strftime('%F %T'),
+            'human_datefull from timestamp';
+
         is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
         is $self->human_datetime( $time ),      $to->strftime('%F %H:%M'),
@@ -426,6 +463,11 @@ note 'cookie timezone like something right';
 
         is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
             'strftime';
+
+        is $self->human_datefull( $str ),       $to->strftime('%F %T'),
+            'human_datefull from ISO';
+        is $self->human_datefull( $time ),      $to->strftime('%F %T'),
+            'human_datefull from timestamp';
 
         is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
@@ -484,6 +526,11 @@ note 'local force timezone';
 
         is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
             'strftime';
+
+        is $self->human_datefull( $str ),       $to->strftime('%F %T'),
+            'human_datefull from ISO';
+        is $self->human_datefull( $time ),      $to->strftime('%F %T'),
+            'human_datefull from timestamp';
 
         is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
@@ -546,6 +593,11 @@ note 'global force timezone';
 
         is $self->strftime('%F %T %z', $str),   $to->strftime('%F %T %z'),
             'strftime';
+
+        is $self->human_datefull( $str ),       $to->strftime('%F %T'),
+            'human_datefull from ISO';
+        is $self->human_datefull( $time ),      $to->strftime('%F %T'),
+            'human_datefull from timestamp';
 
         is $self->human_datetime( $str ),       $to->strftime('%F %H:%M'),
             'human_datetime from ISO';
