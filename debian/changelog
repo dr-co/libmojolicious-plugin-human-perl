@@ -1,3 +1,10 @@
+libmojolicious-plugin-human-perl (0.16-1) nowtaxi; urgency=medium
+
+  * More clean
+  * Fulltime
+
+ -- Roman V. Nikolaev <rshadow@rambler.ru>  Thu, 14 Apr 2016 15:14:13 +0300
+
 libmojolicious-plugin-human-perl (0.15-1) nowtaxi; urgency=low
 
   * Add local force stash for time zone
