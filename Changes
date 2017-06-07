@@ -1,0 +1,6 @@
+Revision history for Mojolicious-Plugin-Human
+
+0.17    07-06-2017
+    - Add human_cut
+    - Add human_money_short
+    - human_suffix mark as DEPRICATED

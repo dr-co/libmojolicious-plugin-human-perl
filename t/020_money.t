@@ -6,7 +6,7 @@ use utf8;
 use open qw(:std :utf8);
 use lib qw(lib ../lib ../../lib);
 
-use Test::More tests => 10;
+use Test::More tests => 16;
 use Encode qw(decode encode);
 
 
@@ -30,11 +30,11 @@ BEGIN {
 my $t = Test::Mojo->new('MyApp');
 ok $t, 'Test Mojo created';
 
-$t->app->routes->get("/test/human")->to( cb => sub {
+$t->app->routes->get("/test/human/full")->to( cb => sub {
     my ($self) = @_;
 
     is $self->human_money,                  undef,      'human_money undefined';
-    is $self->human_money(''),              '',         'human_money empty';
+    is $self->human_money(''),              undef,      'human_money empty';
     is $self->human_money('12345678.00'),   '12,345,678.00',  'human_money';
 
     is $self->human_money('%d' => 12345678.50), '12,345,678',
@@ -42,9 +42,25 @@ $t->app->routes->get("/test/human")->to( cb => sub {
 
     $self->render(text => 'OK.');
 });
+$t->get_ok("/test/human/full")-> status_is( 200 );
+diag decode utf8 => $t->tx->res->body unless $t->tx->success;
 
-$t->get_ok("/test/human")-> status_is( 200 );
+$t->app->routes->get("/test/human/short")->to( cb => sub {
+    my ($self) = @_;
 
+    is $self->human_money_short,                  undef,
+        'human_money_short undefined';
+    is $self->human_money_short(''),              undef,
+        'human_money_short empty';
+    is $self->human_money_short('12345678.00'),   '12,345,678',
+        'human_money_short';
+
+    is $self->human_money_short('%d' => 12345678.50), '12,345,678',
+        'formatted human_money_short';
+
+    $self->render(text => 'OK.');
+});
+$t->get_ok("/test/human/short")-> status_is( 200 );
 diag decode utf8 => $t->tx->res->body unless $t->tx->success;
 
 =head1 AUTHORS

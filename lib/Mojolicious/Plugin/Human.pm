@@ -11,9 +11,11 @@ use POSIX       qw(strftime);
 use DateTime;
 use DateTime::Format::DateParse;
 use DateTime::TimeZone;
-use Mojo::Util  qw(url_unescape);
 
-our $VERSION = '0.16';
+use Mojo::Util  qw(url_unescape);
+use Mojo::ByteStream;
+
+our $VERSION = '0.17';
 
 =encoding utf-8
 
@@ -104,15 +106,19 @@ Set country code for phones functions. Default: 7
 
 =item suffix_one
 
-Set default suffix for 1 value.
+Set default suffix for 1 value. DEPRICATED!
 
 =item suffix_two
 
-Set default suffix for value between 2 and 5.
+Set default suffix for value between 2 and 5. DEPRICATED!
 
 =item suffix_many
 
-Set default suffix for other values.
+Set default suffix for other values. DEPRICATED!
+
+=item cut_length
+
+Set default max length for I<human_cut>. Default: 8
 
 =back
 
@@ -160,6 +166,12 @@ Get count of seconds and return interval human readable form.
 
 Get number, return money string in human readable form with levels.
 
+=head2 human_money_short $str
+
+=head2 human_money_short $format, $str
+
+Like I<human_money> but discard zeros.
+
 =head1 PHONE HELPERS
 
 =head2 flat_phone $str, $country
@@ -179,6 +191,15 @@ Get srtring, return phones (if many) string in human readable form.
 =head2 human_suffix $str, $count, $one, $two, $many
 
 Get word base form and add some of suffix ($one, $two, $many) depends of $count
+DEPRICATED!
+
+=head2 human_suffix_ru $count, $one, $two, $many
+
+Get word form for ($one, $two, $many) depends of $count
+
+=head2 human_cut $str, $length
+
+Return string cut off $length and ellipsis in the end.
 
 =head1 DISTANCE HELPERS
 
@@ -234,6 +255,8 @@ sub register {
     $conf->{suffix_one}         //= '';
     $conf->{suffix_two}         //= 'a';
     $conf->{suffix_many}        //= 'ов';
+
+    $conf->{cut_length}         //= 8;
 
     # Get timezone from cookies
     $app->hook(before_dispatch => sub {
@@ -321,7 +344,7 @@ sub register {
     $app->helper(human_interval => sub {
         my ($self, $sec) = @_;
 
-        return unless defined $sec;
+        return undef unless defined $sec;
 
         my $epoch = abs $sec;
 
@@ -344,12 +367,27 @@ sub register {
         my $self    = shift;
         my $str     = pop;
         my $format  = shift // $conf->{money_format};
-        return $str if !defined($str) || !length($str);
+
+        return undef unless defined $str;
+        return undef unless length  $str;
+
         my $delim = $conf->{money_delim};
         my $digit = $conf->{money_digit};
         $str = sprintf $format, $str;
         $str =~ s{$REGEXP_FRACTIONAL_DELIMITER}{$delim};
         1 while $str =~ s{$REGEXP_DIGIT}{$1$digit$2};
+
+        return Mojo::ByteStream->new($str);
+    });
+
+    $app->helper(human_money_short => sub {
+        my $self = shift;
+
+        my $stream = $self->human_money(@_);
+        return undef unless defined $stream;
+
+        my $str = "$stream";
+        s{\D00$}{} for $str;
         return Mojo::ByteStream->new($str);
     });
 
@@ -401,8 +439,11 @@ sub register {
 
     # Text
 
+    # DEPRICATED
     $app->helper(human_suffix => sub {
         my ($self, $str, $count, $one, $two, $many) = @_;
+
+        warn 'human_suffix DEPRICATED!';
 
         return      unless defined $str;
         return $str unless defined $count;
@@ -427,6 +468,42 @@ sub register {
             ( $tail >= 10 and $tail < 21 )  ?$many  :$result;
 
         return Mojo::ByteStream->new($result);
+    });
+
+    $app->helper(human_suffix_ru => sub {
+        my ($self, $count, $one, $two, $many) = @_;
+
+        return unless defined $count;
+
+        # Last digit
+        my $tail = abs( $count ) % 10;
+
+        # Get right suffix
+        my $result =
+            ( $tail == 0 )                  ?$many  :
+            ( $tail == 1 )                  ?$one   :
+            ( $tail >= 2  and $tail < 5 )   ?$two   :$many;
+
+        # For 10 - 20 get special suffix
+        $tail = abs( $count ) % 100;
+        $result =
+            ( $tail >= 10 and $tail < 21 )  ?$many  :$result;
+
+        return Mojo::ByteStream->new($result);
+    });
+
+    $app->helper(human_cut => sub {
+        my ($self, $str, $length) = @_;
+
+        return undef unless defined $str;
+        return undef unless length $str;
+
+        $length //= $conf->{cut_length};
+        return Mojo::ByteStream->new(
+            $length < length $str
+                ? substr($str, 0 => $length) . '…'
+                : $str
+        );
     });
 
     # Distance
