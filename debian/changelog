@@ -1,3 +1,11 @@
+libmojolicious-plugin-human-perl (0.17-1) nowtaxi; urgency=medium
+
+  * Add human_cut
+  * Add human_money_short
+  * human_suffix mark as DEPRICATED
+
+ -- Roman V. Nikolaev <rshadow@rambler.ru>  Wed, 07 Jun 2017 14:32:14 +0300
+
 libmojolicious-plugin-human-perl (0.16-1) nowtaxi; urgency=medium
 
   * More clean
