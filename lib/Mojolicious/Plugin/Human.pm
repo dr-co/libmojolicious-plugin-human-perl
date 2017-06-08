@@ -15,7 +15,7 @@ use DateTime::TimeZone;
 use Mojo::Util  qw(url_unescape);
 use Mojo::ByteStream;
 
-our $VERSION = '0.17';
+our $VERSION = '1.0';
 
 =encoding utf-8
 
